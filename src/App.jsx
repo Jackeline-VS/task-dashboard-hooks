@@ -1,122 +1,97 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useReducer, useState } from 'react'
+import StatsCards from './components/StatsCards'
+import TaskForm from './components/TaskForm'
+import TaskList from './components/TaskList'
+import Toolbar from './components/Toolbar'
+import tasksReducer, { ACTIONS, initialState } from './hooks/useTasksReducer'
 
-function App() {
-  const [count, setCount] = useState(0)
+function Dashboard() {
+  // useReducer: estado complejo (lista + filtro + orden) con lógica centralizada
+  const [state, dispatch] = useReducer(tasksReducer, initialState)
+  // useState: estado de UI local (texto de búsqueda)
+  const [search, setSearch] = useState('')
+
+  const { items, filter, sort } = state
+  const total = items.length
+  const completadas = items.filter((t) => t.completed).length
+  const progreso = total ? Math.round((completadas / total) * 100) : 0
+
+  const handleAdd = (task) => dispatch({ type: ACTIONS.ADD, payload: task })
+  const handleToggle = (id) => dispatch({ type: ACTIONS.TOGGLE, payload: id })
+  const handleRemove = (id) => dispatch({ type: ACTIONS.REMOVE, payload: id })
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+      <header className="header">
+        <div className="header-inner">
+          <div className="brand">
+            <span className="brand-icon">✓</span>
+            <div>
+              <strong>TaskHub</strong>
+              <small>Dashboard de gestión</small>
+            </div>
+          </div>
+          {/* Paso 2: botón de tema con useContext */}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="container">
+        <section className="hero">
+          <h1>Gestor de <span className="gradient-text">Tareas</span></h1>
+          <p>Organiza, prioriza y completa tu trabajo en un solo lugar.</p>
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <StatsCards
+          total={total}
+          pendientes={total - completadas}
+          completadas={completadas}
+          progreso={progreso}
+        />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+        <div className="layout">
+          <TaskForm onAdd={handleAdd} />
+
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">📌 Mis tareas</h2>
+              {completadas > 0 && (
+                <button
+                  className="link-btn"
+                  onClick={() => dispatch({ type: ACTIONS.CLEAR_COMPLETED })}
+                >
+                  Limpiar completadas
+                </button>
+              )}
+            </div>
+
+            <Toolbar
+              search={search}
+              onSearch={setSearch}
+              filter={filter}
+              onFilter={(f) => dispatch({ type: ACTIONS.FILTER, payload: f })}
+              sort={sort}
+              onSort={(s) => dispatch({ type: ACTIONS.SORT, payload: s })}
+            />
+
+            <TaskList
+              tasks={items}
+              filter={filter}
+              sort={sort}
+              search={search}
+              onToggle={handleToggle}
+              onRemove={handleRemove}
+            />
+          </section>
+        </div>
+      </main>
+
+      <footer className="footer">
+        ✓ TaskHub · Práctica Semana 07 (Parte 2) — React Hooks · UNCP
+      </footer>
     </>
   )
 }
 
-export default App
+export default function App() {
+  return <Dashboard />
+}
