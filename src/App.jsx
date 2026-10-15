@@ -1,15 +1,35 @@
-import { useReducer, useState } from 'react'
+import { useContext, useEffect, useReducer, useState } from 'react'
 import StatsCards from './components/StatsCards'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 import Toolbar from './components/Toolbar'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeContext } from './contexts/theme'
 import tasksReducer, { ACTIONS, initialState } from './hooks/useTasksReducer'
 
+const STORAGE_KEY = 'taskhub-state'
+
+// Inicialización perezosa del reducer: recupera el estado guardado
+function cargarEstado(inicial) {
+  try {
+    const guardado = localStorage.getItem(STORAGE_KEY)
+    return guardado ? { ...inicial, ...JSON.parse(guardado) } : inicial
+  } catch {
+    return inicial
+  }
+}
+
 function Dashboard() {
-  // useReducer: estado complejo (lista + filtro + orden) con lógica centralizada
-  const [state, dispatch] = useReducer(tasksReducer, initialState)
-  // useState: estado de UI local (texto de búsqueda)
+  // useReducer con 3er argumento (init): lee localStorage solo al montar
+  const [state, dispatch] = useReducer(tasksReducer, initialState, cargarEstado)
   const [search, setSearch] = useState('')
+  // useContext: lee el tema sin pasar props (sin prop drilling)
+  const { theme, toggleTheme } = useContext(ThemeContext)
+
+  // useEffect: sincroniza tareas + filtro + orden con localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  }, [state])
 
   const { items, filter, sort } = state
   const total = items.length
@@ -31,7 +51,10 @@ function Dashboard() {
               <small>Dashboard de gestión</small>
             </div>
           </div>
-          {/* Paso 2: botón de tema con useContext */}
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'light' ? '🌙' : '☀️'}
+            <span>{theme === 'light' ? 'Modo oscuro' : 'Modo claro'}</span>
+          </button>
         </div>
       </header>
 
@@ -93,5 +116,9 @@ function Dashboard() {
 }
 
 export default function App() {
-  return <Dashboard />
+  return (
+    <ThemeProvider>
+      <Dashboard />
+    </ThemeProvider>
+  )
 }
