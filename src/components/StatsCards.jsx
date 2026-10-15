@@ -1,3 +1,4 @@
+import { memo } from 'react'
 function StatsCards({ total, pendientes, completadas, progreso }) {
   return (
     <section className="stats">
@@ -36,4 +37,4 @@ function StatsCards({ total, pendientes, completadas, progreso }) {
   )
 }
 
-export default StatsCards
+export default memo(StatsCards)

@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 const ETIQUETA = { alta: 'Alta', media: 'Media', baja: 'Baja' }
 const formatoFecha = new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short' })
 
@@ -19,4 +21,5 @@ function TaskItem({ task, onToggle, onRemove }) {
   )
 }
 
-export default TaskItem
+// React.memo: solo se re-renderiza la tarea cuyo objeto cambió
+export default memo(TaskItem)

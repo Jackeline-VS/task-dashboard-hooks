@@ -1,10 +1,11 @@
-import { useContext, useEffect, useReducer, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
 import StatsCards from './components/StatsCards'
 import TaskForm from './components/TaskForm'
 import TaskList from './components/TaskList'
 import Toolbar from './components/Toolbar'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ThemeContext } from './contexts/theme'
+import { useDebounce } from './hooks/useDebounce'
 import tasksReducer, { ACTIONS, initialState } from './hooks/useTasksReducer'
 
 const STORAGE_KEY = 'taskhub-state'
@@ -20,25 +21,39 @@ function cargarEstado(inicial) {
 }
 
 function Dashboard() {
-  // useReducer con 3er argumento (init): lee localStorage solo al montar
+  // useReducer: estado complejo (lista + filtro + orden)
   const [state, dispatch] = useReducer(tasksReducer, initialState, cargarEstado)
+  // useState: estado de UI local (texto del buscador)
   const [search, setSearch] = useState('')
-  // useContext: lee el tema sin pasar props (sin prop drilling)
+  // useDebounce: la lista se filtra 300 ms después de dejar de escribir
+  const debouncedSearch = useDebounce(search, 300)
+  // useContext: tema global sin prop drilling
   const { theme, toggleTheme } = useContext(ThemeContext)
 
-  // useEffect: sincroniza tareas + filtro + orden con localStorage
+  // useEffect: sincroniza el estado con localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
   const { items, filter, sort } = state
-  const total = items.length
-  const completadas = items.filter((t) => t.completed).length
-  const progreso = total ? Math.round((completadas / total) * 100) : 0
 
-  const handleAdd = (task) => dispatch({ type: ACTIONS.ADD, payload: task })
-  const handleToggle = (id) => dispatch({ type: ACTIONS.TOGGLE, payload: id })
-  const handleRemove = (id) => dispatch({ type: ACTIONS.REMOVE, payload: id })
+  // useMemo: las estadísticas solo se recalculan cuando cambian las tareas
+  const stats = useMemo(() => {
+    const total = items.length
+    const completadas = items.filter((t) => t.completed).length
+    return {
+      total,
+      completadas,
+      pendientes: total - completadas,
+      progreso: total ? Math.round((completadas / total) * 100) : 0,
+    }
+  }, [items])
+
+  // useCallback: referencias estables para los hijos con React.memo
+  // (dispatch es estable, por eso el array de dependencias va vacío)
+  const handleAdd = useCallback((task) => dispatch({ type: ACTIONS.ADD, payload: task }), [])
+  const handleToggle = useCallback((id) => dispatch({ type: ACTIONS.TOGGLE, payload: id }), [])
+  const handleRemove = useCallback((id) => dispatch({ type: ACTIONS.REMOVE, payload: id }), [])
 
   return (
     <>
@@ -65,10 +80,10 @@ function Dashboard() {
         </section>
 
         <StatsCards
-          total={total}
-          pendientes={total - completadas}
-          completadas={completadas}
-          progreso={progreso}
+          total={stats.total}
+          pendientes={stats.pendientes}
+          completadas={stats.completadas}
+          progreso={stats.progreso}
         />
 
         <div className="layout">
@@ -77,7 +92,7 @@ function Dashboard() {
           <section className="card">
             <div className="card-head">
               <h2 className="card-title">📌 Mis tareas</h2>
-              {completadas > 0 && (
+              {stats.completadas > 0 && (
                 <button
                   className="link-btn"
                   onClick={() => dispatch({ type: ACTIONS.CLEAR_COMPLETED })}
@@ -87,6 +102,7 @@ function Dashboard() {
               )}
             </div>
 
+            {/* Toolbar sin memo: su prop "search" cambia en cada tecla (evitamos overuse) */}
             <Toolbar
               search={search}
               onSearch={setSearch}
@@ -100,7 +116,7 @@ function Dashboard() {
               tasks={items}
               filter={filter}
               sort={sort}
-              search={search}
+              search={debouncedSearch}
               onToggle={handleToggle}
               onRemove={handleRemove}
             />

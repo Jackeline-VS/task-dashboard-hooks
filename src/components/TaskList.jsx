@@ -1,9 +1,13 @@
+import { useMemo } from 'react'
 import { procesarTareas } from '../utils/procesarTareas'
 import TaskItem from './TaskItem'
 
 function TaskList({ tasks, filter, sort, search, onToggle, onRemove }) {
-  // Paso 1: se recalcula en CADA render (en el Paso 3 se optimiza con useMemo)
-  const processedTasks = procesarTareas(tasks, filter, sort, search)
+  // useMemo: filtra y ordena SOLO si cambian tasks, filter, sort o search
+  const processedTasks = useMemo(
+    () => procesarTareas(tasks, filter, sort, search),
+    [tasks, filter, sort, search]
+  )
 
   if (processedTasks.length === 0) {
     return (

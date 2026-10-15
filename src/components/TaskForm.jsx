@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 
 const PRIORIDADES = [
   { id: 'alta', label: 'Alta' },
@@ -7,9 +7,15 @@ const PRIORIDADES = [
 ]
 
 function TaskForm({ onAdd }) {
-  // useState: estado de UI local (solo le importa al formulario)
   const [titulo, setTitulo] = useState('')
   const [prioridad, setPrioridad] = useState('media')
+  // useRef: acceso directo al <input> sin provocar re-renders
+  const inputRef = useRef(null)
+
+  // Auto-focus al montar el formulario
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -23,6 +29,7 @@ function TaskForm({ onAdd }) {
       createdAt: Date.now(),
     })
     setTitulo('')
+    inputRef.current?.focus() // devuelve el foco para seguir escribiendo
   }
 
   return (
@@ -30,6 +37,7 @@ function TaskForm({ onAdd }) {
       <h2 className="card-title">➕ Nueva tarea</h2>
 
       <input
+        ref={inputRef}
         className="input"
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
@@ -58,4 +66,5 @@ function TaskForm({ onAdd }) {
   )
 }
 
-export default TaskForm
+// memo: como onAdd es estable (useCallback), el formulario no se re-renderiza
+export default memo(TaskForm)
